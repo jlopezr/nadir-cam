@@ -1,0 +1,11 @@
+python nadir_cam.py ^
+  --wms-url "https://www.ign.es/wms-inspire/pnoa-ma" ^
+  --layer "OI.OrthoimageCoverage" ^
+  --lat 41.276361469991926 ^
+  --lon 1.988489175067195 ^
+  --alt 240 ^
+  --yaw 30 ^
+  --hfov 70 ^
+  --width 1280 ^
+  --height 720 ^
+  --out frame.png
