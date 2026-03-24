@@ -202,47 +202,57 @@ def rot_z(a: float) -> np.ndarray:
 
 def camera_to_world_rotation(roll_deg: float, pitch_deg: float, yaw_deg: float) -> np.ndarray:
     """
-    Construye R_cw: vector en cámara -> vector en mundo ENU.
+    Construye R_cw: vector en cámara -> vector en mundo ENU
+    usando convención aeronáutica clásica:
 
-    Cámara base:
-    - +x: derecha en imagen
-    - +y: abajo en imagen
-    - +z: hacia delante (óptico)
+    - roll:  rotación alrededor del eje longitudinal (forward)
+    - pitch: rotación alrededor del eje lateral (right)
+    - yaw:   rotación alrededor del eje vertical (down), con
+             0 = norte y positivo en sentido horario
 
-    En pose neutra la cámara mira hacia abajo:
-    x_cam -> +Este
-    y_cam -> -Norte
-    z_cam -> -Arriba
+    Marcos:
+    - Cámara:
+        x_cam = derecha en imagen
+        y_cam = abajo en imagen
+        z_cam = eje óptico, hacia delante
+    - Cuerpo aeronáutico asociado a la cámara:
+        x_body = "forward" = arriba en imagen
+        y_body = "right"   = derecha en imagen
+        z_body = "down"    = eje óptico
+    - Mundo:
+        ENU = (este, norte, arriba)
 
-    Luego aplicamos:
-    - yaw alrededor de +Z mundo, pero como el yaw de entrada es horario desde norte,
-      lo convertimos a ángulo matemático ENU.
-    - pitch alrededor del eje X local de cámara
-    - roll alrededor del eje Z local de cámara
-
-    Esta convención es una aproximación útil para arrancar; puede requerir
-    ajuste de signos según tu pipeline real.
+    En pose neutra (roll=pitch=yaw=0):
+    - la cámara mira hacia abajo
+    - la parte superior de la imagen apunta al norte
+    - la derecha de la imagen apunta al este
     """
-    # Base camera->world when looking straight down.
-    r_base = np.array([
-        [1,  0,  0],   # x_cam -> +E
-        [0, -1,  0],   # y_cam -> -N
-        [0,  0, -1],   # z_cam -> -U
+    roll = math.radians(roll_deg)
+    pitch = math.radians(pitch_deg)
+    yaw = math.radians(yaw_deg)
+
+    # Cámara -> body aeronáutico
+    # x_body (forward) = -y_cam
+    # y_body (right)   = +x_cam
+    # z_body (down)    = +z_cam
+    r_bc = np.array([
+        [0, -1,  0],
+        [1,  0,  0],
+        [0,  0,  1],
     ], dtype=np.float64)
 
-    # yaw entrada: 0=norte, horario positivo
-    # yaw matemático ENU: 0=este, antihorario positivo
-    yaw_math = math.radians(90.0 - yaw_deg)
+    # Body -> NED con convención aeronáutica estándar:
+    # yaw (z), pitch (y), roll (x)
+    r_nb = rot_z(yaw) @ rot_y(pitch) @ rot_x(roll)
 
-    # Rotaciones "externas" en mundo para heading
-    r_yaw_world = rot_z(yaw_math)
+    # NED -> ENU
+    r_en = np.array([
+        [0,  1,  0],   # east  = y_ned
+        [1,  0,  0],   # north = x_ned
+        [0,  0, -1],   # up    = -z_ned
+    ], dtype=np.float64)
 
-    # Rotaciones "internas" aproximadas de cámara
-    r_roll_cam = rot_z(math.radians(roll_deg))
-    r_pitch_cam = rot_x(math.radians(pitch_deg))
-
-    return r_yaw_world @ r_base @ r_pitch_cam @ r_roll_cam
-
+    return r_en @ r_nb @ r_bc
 
 def pixel_to_camera_ray(u: float, v: float, cam: CameraSpec) -> np.ndarray:
     x = (u - cam.cx) / cam.fx
