@@ -2,7 +2,7 @@
 setlocal
 
 REM ============================================
-REM Test sencillo para terrain_cam_wcs.py
+REM Test sencillo para terrain_cam.py
 REM - Vista nadir
 REM - Madrid centro
 REM - Orto PNOA por WMS
@@ -43,6 +43,3 @@ if errorlevel 1 (
 ) else (
   echo OK. Imagen generada: test_dem_madrid.png
 )
-
-echo.
-pause
