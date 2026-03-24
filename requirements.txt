@@ -3,3 +3,4 @@ pillow
 numpy
 opencv-python
 pyproj
+rasterio
